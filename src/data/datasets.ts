@@ -5,6 +5,7 @@ import preCycloneImage from "@/assets/pre-cyclone-02a-arabian-sea-2024.jpg";
 import stage1Image from "@/assets/cyclone-02a-stage1.jpg";
 import stage2Image from "@/assets/cyclone-02a-stage2.jpg";
 import stage3Image from "@/assets/cyclone-02a-stage3.jpg";
+import andromedaImage from "@/assets/andromeda.jpg";
 
 export interface DatasetMetadata {
   id: string;
@@ -141,19 +142,21 @@ export const datasets: Record<string, DatasetMetadata[]> = {
 
   Andromeda: [
     {
-      id: "andromeda-sample",
-      name: "Andromeda Galaxy",
-      planet: "Andromeda",
-      timestamp: "2024-07-10",
-      instrument: "Hubble Space Telescope",
-      description:
-        "Deep space observation of the Andromeda Galaxy showing stellar formations.",
-      source: "NASA Hubble",
-      resolution: "3.2 GP",
-      wavelength: "Multi-spectrum",
-      image: earthSample, // Placeholder
-      thumbnail: earthSample,
-    },
+      
+  id: "andromeda-sample",
+  name: "Andromeda Galaxy",
+  planet: "Andromeda",
+  timestamp: "2024-07-10",
+  instrument: "Hubble Space Telescope",
+  description: "Deep space observation of the Andromeda Galaxy showing stellar formations.",
+  source: "NASA Hubble",
+  resolution: "3.2 GP",
+  wavelength: "Multi-spectrum",
+  image: andromedaImage,
+  thumbnail: andromedaImage,
+}
+
+    
   ],
 };
 
