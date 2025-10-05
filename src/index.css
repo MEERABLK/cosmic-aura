@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Space Theme - Deep cosmic colors */
+    --background: 222 47% 5%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Cosmic Blue Primary */
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 5%;
+
+    /* Nebula Purple Secondary */
+    --secondary: 262 83% 58%;
+    --secondary-foreground: 210 40% 98%;
+
+    /* Muted cosmic tones */
+    --muted: 222 47% 12%;
+    --muted-foreground: 215 20% 65%;
+
+    /* Cyan Accent for AI highlights */
+    --accent: 189 94% 43%;
+    --accent-foreground: 222 47% 5%;
+
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Borders and inputs with subtle glow */
+    --border: 217 50% 20%;
+    --input: 217 50% 15%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens for space theme */
+    --cosmic-glow: 217 91% 60%;
+    --nebula: 262 83% 58%;
+    --aurora: 189 94% 43%;
+    --star: 45 93% 58%;
+    
+    /* Gradients */
+    --gradient-cosmic: linear-gradient(135deg, hsl(217 91% 60% / 0.2), hsl(262 83% 58% / 0.2));
+    --gradient-aurora: linear-gradient(90deg, hsl(189 94% 43% / 0.3), hsl(262 83% 58% / 0.3));
+    
+    /* Glass effect */
+    --glass-bg: hsl(222 47% 8% / 0.4);
+    --glass-border: hsl(217 50% 20% / 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-x-hidden;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+  }
+  
+  .cosmic-glow {
+    box-shadow: 0 0 30px hsl(var(--cosmic-glow) / 0.3),
+                0 0 60px hsl(var(--cosmic-glow) / 0.1);
+  }
+  
+  .aurora-glow {
+    box-shadow: 0 0 20px hsl(var(--aurora) / 0.4),
+                0 0 40px hsl(var(--aurora) / 0.2);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+  
+  @keyframes glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+}
