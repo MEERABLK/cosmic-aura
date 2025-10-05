@@ -1,22 +1,31 @@
-import { useState } from "react";
-import { ZoomIn, ZoomOut, RotateCw, Layers, Download } from "lucide-react";
+// src/components/ImageExplorer.tsx
+import React, { useMemo, useState } from "react";
+import { ZoomIn, ZoomOut, RotateCw, Download, Layers as LayersIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { datasets, aiInsights, DatasetMetadata } from "@/data/datasets";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+
+import { aiInsights, DatasetMetadata } from "@/data/datasets";
 import { useDataset } from "@/context/DatasetContext";
 
-const ImageExplorer = () => {
-  const [selectedPlanet, setSelectedPlanet] = useState("Earth");
 
-  // ✅ use the shared dataset
-  const { selectedDataset, setSelectedDataset } = useDataset();
+const ImageExplorer: React.FC = () => {
+  // global dataset state (from context)
+  const { selectedDataset, setSelectedDataset, datasets: storeDatasets } = useDataset();
 
-  // zoom / pan
-  const [zoom, setZoom] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  // which planet tab is active in the sidebar
+  const [selectedPlanet, setSelectedPlanet] = useState<string>("Earth");
 
+  // viewer: zoom / pan
+  const [zoom, setZoom] = useState<number>(1);
+  const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // toolbar actions
   const handleZoomIn = () => setZoom((z) => Math.min(z + 0.5, 5));
   const handleZoomOut = () => setZoom((z) => Math.max(z - 0.5, 1));
   const handleReset = () => {
@@ -24,36 +33,68 @@ const ImageExplorer = () => {
     setPosition({ x: 0, y: 0 });
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // mouse handlers
+  const onMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
   };
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const onMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
   };
-  const handleMouseUp = () => setIsDragging(false);
+  const onMouseUp = () => setIsDragging(false);
+  const onMouseLeave = () => setIsDragging(false);
 
+  // planet & dataset switching
   const handlePlanetChange = (planet: string) => {
     setSelectedPlanet(planet);
-    const planetDatasets = datasets[planet as keyof typeof datasets];
-    if (planetDatasets?.length) {
-      setSelectedDataset(planetDatasets[0]);
+    const list = storeDatasets[planet as keyof typeof storeDatasets];
+    if (list?.length) {
+      setSelectedDataset(list[0]);
       handleReset();
     }
   };
-
   const handleDatasetChange = (dataset: DatasetMetadata) => {
     setSelectedDataset(dataset);
     handleReset();
   };
 
-  const currentInsights = aiInsights[selectedDataset.id] || [];
+  // LAYERS POPOVER state
+  const [layersOpen, setLayersOpen] = useState(false);
+  const [showAI, setShowAI] = useState(true);
+  const [showWind, setShowWind] = useState(false);
+  const [compare, setCompare] = useState(false);
+  const [overlayOpacity, setOverlayOpacity] = useState(50);
 
+  // choose the pre/post pair for compare overlay
+  const preCyclone = useMemo(
+    () => storeDatasets.Earth?.find((d) => d.id === "pre-cyclone-02a"),
+    [storeDatasets]
+  );
+  const finalCyclone = useMemo(
+    () => storeDatasets.Earth?.find((d) => d.id === "tropical-cyclone-02a"),
+    [storeDatasets]
+  );
+
+  // the image to overlay when "Compare" is ON
+  const overlayDataset = useMemo(() => {
+    if (!compare) return null;
+    if (!preCyclone || !finalCyclone || !selectedDataset) return null;
+    return selectedDataset.id === preCyclone.id ? finalCyclone : preCyclone;
+  }, [compare, selectedDataset, preCyclone, finalCyclone]);
+
+  // AI detections for the current image
+const detections = aiInsights[selectedDataset.id] ?? [];
+
+  // transform for image container (pan + zoom)
   const transformStyle = {
     transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${zoom})`,
     transition: isDragging ? "none" : "transform 0.2s",
   } as const;
+
+  // list for the current planet tab
+  const planetList: DatasetMetadata[] =
+    storeDatasets[selectedPlanet as keyof typeof storeDatasets] ?? [];
 
   return (
     <section id="explorer" className="py-20 px-4">
@@ -67,9 +108,10 @@ const ImageExplorer = () => {
           </p>
         </div>
 
+        {/* ==== MAIN GRID: viewer (left 3 cols) + sidebar (right 1 col) ==== */}
         <div className="grid lg:grid-cols-4 gap-6">
-          {/* Main Viewer */}
-          <div className="lg:col-span-3">
+          {/* ===== Main viewer on the LEFT ===== */}
+          <div className="lg:col-span-3 space-y-4">
             <Card className="glass-panel overflow-hidden">
               {/* Toolbar */}
               <div className="border-b border-border/50 p-4 flex items-center justify-between">
@@ -83,15 +125,60 @@ const ImageExplorer = () => {
                   <Button size="sm" variant="outline" className="glass-panel" onClick={handleReset}>
                     <RotateCw className="w-4 h-4" />
                   </Button>
-                  <span className="text-sm text-muted-foreground ml-2">
-                    {Math.round(zoom * 100)}%
-                  </span>
+                  <span className="text-sm text-muted-foreground ml-2">{Math.round(zoom * 100)}%</span>
                 </div>
+
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" className="glass-panel">
-                    <Layers className="w-4 h-4 mr-2" />
-                    Layers
-                  </Button>
+                  <Popover open={layersOpen} onOpenChange={setLayersOpen}>
+                    <PopoverTrigger asChild>
+                      <Button size="sm" variant="outline" className="glass-panel">
+                        <LayersIcon className="w-4 h-4 mr-2" />
+                        Layers
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent className="w-72 space-y-4">
+                      {/* AI Insights */}
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="ai-insights">AI Insights</Label>
+                        <Switch
+                          id="ai-insights"
+                          checked={showAI}
+                          onCheckedChange={setShowAI}
+                        />
+                      </div>
+
+                      {/* Wind */}
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="wind">Wind Pattern Overlay</Label>
+                        <Switch id="wind" checked={showWind} onCheckedChange={setShowWind} />
+                      </div>
+
+                      {/* Compare */}
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="compare">Compare Pre/Post Cyclone</Label>
+                        <Switch id="compare" checked={compare} onCheckedChange={setCompare} />
+                      </div>
+
+                      {/* Opacity slider (only when comparing) */}
+                      {compare && (
+                        <div className="pt-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label>Overlay Opacity</Label>
+                            <span className="text-xs text-muted-foreground">{overlayOpacity}%</span>
+                          </div>
+                          <Slider
+                            value={[overlayOpacity]}
+                            onValueChange={(v) => setOverlayOpacity(v[0])}
+                            min={0}
+                            max={100}
+                            step={1}
+                          />
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+
                   <Button size="sm" variant="outline" className="glass-panel">
                     <Download className="w-4 h-4 mr-2" />
                     Export
@@ -99,16 +186,20 @@ const ImageExplorer = () => {
                 </div>
               </div>
 
-              {/* Viewer Canvas (read-only for annotations) */}
+              {/* Viewer */}
               <div
                 className="relative w-full h-[600px] bg-background/50 overflow-hidden cursor-move"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                onMouseDown={onMouseDown}
+                onMouseMove={onMouseMove}
+                onMouseUp={onMouseUp}
+                onMouseLeave={onMouseLeave}
               >
-                {/* Transform layer: image + overlays */}
-                <div className="absolute top-1/2 left-1/2 will-change-transform" style={transformStyle}>
+                {/* Moving/zooming group */}
+                <div
+                  className="absolute top-1/2 left-1/2 will-change-transform"
+                  style={transformStyle}
+                >
+                  {/* Base image */}
                   <img
                     src={selectedDataset.image}
                     alt={selectedDataset.name}
@@ -117,94 +208,62 @@ const ImageExplorer = () => {
                     draggable={false}
                   />
 
-                  {/* AI Highlight (click-through) */}
-                  {currentInsights.length > 0 && (
+                  {/* Compare overlay */}
+                  {compare && overlayDataset && (
+                    <img
+                      src={overlayDataset.image}
+                      alt={`${overlayDataset.name} overlay`}
+                      className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                      style={{ opacity: overlayOpacity / 100 }}
+                      draggable={false}
+                    />
+                  )}
+
+                  {/* Wind overlay (demo SVG) */}
+                  {showWind && (
+                    <svg
+                      className="absolute inset-0 w-full h-full pointer-events-none"
+                      viewBox="0 0 1000 600"
+                      style={{ opacity: 0.35 }}
+                    >
+                      {Array.from({ length: 10 }).map((_, r) =>
+                        Array.from({ length: 16 }).map((__, c) => {
+                          const x = 30 + c * 60;
+                          const y = 30 + r * 55;
+                          const angle = (Math.sin(r * 1.2 + c * 0.6) * Math.PI) / 3;
+                          const len = 25;
+                          const x2 = x + len * Math.cos(angle);
+                          const y2 = y + len * Math.sin(angle);
+                          return (
+                            <g key={`${r}-${c}`}>
+                              <line x1={x} y1={y} x2={x2} y2={y2} stroke="white" strokeWidth="2" />
+                              <polygon
+                                points={`${x2},${y2} ${x2 - 5 * Math.cos(angle - 0.5)},${y2 - 5 * Math.sin(angle - 0.5)} ${x2 - 5 * Math.cos(angle + 0.5)},${y2 - 5 * Math.sin(angle + 0.5)}`}
+                                fill="white"
+                              />
+                            </g>
+                          );
+                        })
+                      )}
+                    </svg>
+                  )}
+
+                  {/* AI insights badge/box */}
+                  {showAI && detections.length > 0 && (
                     <div
                       className="absolute w-32 h-32 border-2 border-accent rounded-lg aurora-glow pointer-events-none animate-pulse"
                       style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
                     >
                       <div className="absolute -top-8 left-0 bg-accent text-accent-foreground px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">
-                        AI Detected: {currentInsights[0].pattern}
+                        AI Detected: {detections[0].pattern}
                       </div>
                     </div>
                   )}
                 </div>
               </div>
             </Card>
-          </div>
 
-          {/* Sidebar Controls */}
-          <div className="space-y-4">
-            {/* Planet Selector */}
-            <Card className="glass-panel p-4">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-primary" />
-                Celestial Bodies
-              </h3>
-              <div className="space-y-2">
-                {Object.keys(datasets).map((planet) => (
-                  <button
-                    key={planet}
-                    onClick={() => handlePlanetChange(planet)}
-                    className={`w-full text-left px-3 py-2 rounded-lg transition-all ${
-                      planet === selectedPlanet
-                        ? "bg-primary text-primary-foreground cosmic-glow"
-                        : "hover:bg-muted"
-                    }`}
-                  >
-                    {planet}
-                  </button>
-                ))}
-              </div>
-            </Card>
-
-            {/* Dataset Selector */}
-            {datasets[selectedPlanet as keyof typeof datasets].length > 1 && (
-              <Card className="glass-panel p-4">
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-accent" />
-                  {selectedPlanet} Datasets
-                </h3>
-                <div className="space-y-2">
-                  {datasets[selectedPlanet as keyof typeof datasets].map((dataset) => (
-                    <button
-                      key={dataset.id}
-                      onClick={() => handleDatasetChange(dataset)}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${
-                        dataset.id === selectedDataset.id
-                          ? "bg-accent/20 border border-accent"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      <div className="font-medium">{dataset.name}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {dataset.timestamp}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </Card>
-            )}
-
-            {/* AI Insights */}
-            <Card className="glass-panel p-4">
-              <h3 className="font-semibold mb-3 text-accent">AI Insights</h3>
-              <div className="space-y-3 text-sm">
-                {currentInsights.map((insight, idx) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    <div className={`w-2 h-2 rounded-full mt-1.5 animate-pulse ${idx === 0 ? "bg-accent" : "bg-secondary"}`} />
-                    <div>
-                      <div className="font-medium">{insight.pattern}</div>
-                      <div className="text-muted-foreground text-xs">
-                        Confidence: {insight.confidence}%
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Metadata */}
+            {/* Metadata below viewer */}
             <Card className="glass-panel p-4">
               <h3 className="font-semibold mb-3">Metadata</h3>
               <div className="space-y-2 text-sm">
@@ -228,7 +287,8 @@ const ImageExplorer = () => {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Coordinates</span>
                     <span className="font-medium">
-                      {selectedDataset.coordinates.lat.toFixed(1)}°, {selectedDataset.coordinates.lon.toFixed(1)}°
+                      {selectedDataset.coordinates.lat.toFixed(1)}°,{" "}
+                      {selectedDataset.coordinates.lon.toFixed(1)}°
                     </span>
                   </div>
                 )}
@@ -243,6 +303,75 @@ const ImageExplorer = () => {
                     {selectedDataset.description}
                   </p>
                 </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* ===== Sidebar on the RIGHT ===== */}
+          <div className="space-y-4">
+            {/* Planets */}
+            <Card className="glass-panel p-4">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">Celestial Bodies</h3>
+              <div className="space-y-2">
+                {Object.keys(storeDatasets).map((planet) => (
+                  <button
+                    key={planet}
+                    onClick={() => handlePlanetChange(planet)}
+                    className={`w-full text-left px-3 py-2 rounded-lg transition-all ${
+                      planet === selectedPlanet
+                        ? "bg-primary text-primary-foreground cosmic-glow"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    {planet}
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Datasets for selected planet */}
+            {planetList.length > 0 && (
+              <Card className="glass-panel p-4">
+                <h3 className="font-semibold mb-3 text-accent">{selectedPlanet} Datasets</h3>
+                <div className="space-y-2">
+                  {planetList.map((d) => (
+                    <button
+                      key={d.id}
+                      onClick={() => handleDatasetChange(d)}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${
+                        d.id === selectedDataset.id
+                          ? "bg-accent/20 border border-accent"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      <div className="font-medium">{d.name}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{d.timestamp}</div>
+                    </button>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* AI Insights list */}
+            <Card className="glass-panel p-4">
+              <h3 className="font-semibold mb-3 text-accent">AI Insights</h3>
+              <div className="space-y-3 text-sm">
+                {(aiInsights[selectedDataset.id] ?? []).map((it, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <div
+                      className={`w-2 h-2 rounded-full mt-1.5 ${
+                        idx === 0 ? "bg-accent" : "bg-secondary"
+                      }`}
+                    />
+                    <div>
+                      <div className="font-medium">{it.pattern}</div>
+                      <div className="text-muted-foreground text-xs">Confidence: {it.confidence}%</div>
+                    </div>
+                  </div>
+                ))}
+                {(!aiInsights[selectedDataset.id] || aiInsights[selectedDataset.id].length === 0) && (
+                  <div className="text-xs text-muted-foreground">No AI insights for this image.</div>
+                )}
               </div>
             </Card>
           </div>
