@@ -49,8 +49,8 @@ This project invites students, researchers, and dreamers alike to explore planet
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/embiggen-your-eyes.git
-cd embiggen-your-eyes
+git clone https://github.com/MEERABLK/cosmic-aura.git
+cd cosmic-aura
 
 # Install dependencies
 npm install
@@ -59,4 +59,4 @@ npm install
 npm run dev
 
 # Open in your browser
-http://localhost:5173
+http://localhost:8080/#
