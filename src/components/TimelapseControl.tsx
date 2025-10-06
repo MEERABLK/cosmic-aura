@@ -1,107 +1,124 @@
 // src/components/TimelapseControl.tsx
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useDataset } from "@/context/DatasetContext";
+import { moonTimelapseFrames, DatasetMetadata } from "@/data/datasets";
 
-const TOTAL = 319;          // Day 0 → Day 319
-const TICK_MS = 1000;  // ⏳ interval between updates (1 second per tick)
-const STEP = 32;      // 🌀 move 40 days per tick (was 50)   //  Move 50 days per tick (was 60)
+const TICK_MS = 1000; // 1s/frame
 
+export default function TimelapseControl() {
+  const { datasets, setSelectedDataset, selectedDataset } = useDataset();
 
-const TimelapseControl = () => {
-  const { datasets, setSelectedDataset } = useDataset();
-
-  // 1) Build frames in the exact order you want (Day 0 → 319)
-  const frames = useMemo(() => {
+  // Build EARTH frames (Cyclone sequence)
+  const earthFrames = useMemo(() => {
     const earth = datasets.Earth ?? [];
-    const pick = (id: string) => earth.find((d) => d.id === id);
-    return [
-      pick("pre-cyclone-02a"),       // Day 0 (Nov 18, 2024)
-      pick("cyclone-02a-stage1"),    // Day 100 (Feb 26, 2025)
-      pick("cyclone-02a-stage2"),    // Day 200 (Jun 6, 2025)
-      pick("cyclone-02a-stage3"),    // Day 300 (Sep 14, 2025)
-      pick("tropical-cyclone-02a"),  // Day 319 (Oct 3, 2025)
-    ].filter(Boolean);
+    const pick = (id: string) => earth.find((d) => d.id === id) as DatasetMetadata | undefined;
+    return [pick("pre-cyclone-02a"), pick("cyclone-02a-stage1"), pick("cyclone-02a-stage2"), pick("cyclone-02a-stage3"), pick("tropical-cyclone-02a")].filter(
+      Boolean
+    ) as DatasetMetadata[];
   }, [datasets]);
 
-  // 2) State
+  // Decide which planet’s frames to use based on current selection
+  const isMoon = selectedDataset?.planet === "Moon";
+  const frames = isMoon ? moonTimelapseFrames : earthFrames;
+
+  const TOTAL = isMoon ? frames.length - 1 : 319; // Moon: 0..4 ; Earth: 0..319
+const STEP = isMoon ? 1 : 32;
+
+  // Labels per planet
+  const startLabel = isMoon ? "Frame 1" : "Day 0 (Nov 18, 2024)";
+  const endLabel = isMoon ? `Frame ${frames.length}` : "Day 319 (Oct 3, 2025)";
+  const title = isMoon ? "Moon Time-Lapse" : "Cyclone 02A Time-Lapse";
+  const subtitle = isMoon ? "5 sequential LRO images" : "Pre-Cyclone (Day 0) → Cyclone (Day 319)";
+
+  // State
   const [isPlaying, setIsPlaying] = useState(false);
-  const [frameDay, setFrameDay] = useState<number>(TOTAL); // start on final frame (cyclone)
+  const [cursor, setCursor] = useState<number>(0);
   const intervalRef = useRef<number | null>(null);
 
-  // 3) Map day (0..319) → frame index (0..frames.length-1)
-  const dayToIndex = (day: number) => {
+  // Map slider value -> frame index
+  const sliderToIndex = (v: number) => {
     if (!frames.length) return 0;
-    const idx = Math.round((day / TOTAL) * (frames.length - 1));
+if (isMoon) return Math.min(frames.length - 1, Math.max(0, v));
+    // Earth: 0..319 -> 0..(frames-1)
+    const idx = Math.round((v / 319) * (frames.length - 1));
     return Math.min(frames.length - 1, Math.max(0, idx));
   };
 
-  // 4) Apply current frame to the explorer
+  // Apply current frame to the explorer
   useEffect(() => {
     if (!frames.length) return;
-    const idx = dayToIndex(frameDay);
-    setSelectedDataset(frames[idx]!);
-  }, [frameDay, frames, setSelectedDataset]);
+    setSelectedDataset(frames[sliderToIndex(cursor)]);
+  }, [cursor, frames, setSelectedDataset]);
 
-  // 5) Play/pause behavior (looping)
+  // Reset playhead when the planet changes
+  useEffect(() => {
+    setIsPlaying(false);
+    setCursor(TOTAL);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  }, [isMoon, TOTAL]);
+
+  // Playback loop
   useEffect(() => {
     if (!isPlaying) return;
     intervalRef.current = window.setInterval(() => {
-      setFrameDay((prev) => {
+      setCursor((prev) => {
         const next = prev + STEP;
-        // loop back to 0 once we pass the end
-        return next > TOTAL ? 0 : next;
+        return next > TOTAL ? (isMoon ? 0 : 0) : next;
       });
     }, TICK_MS);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isPlaying]);
+  }, [isPlaying, STEP, TOTAL, isMoon]);
 
+  // Handlers
   const handlePlayPause = () => {
     if (isPlaying) {
       setIsPlaying(false);
       if (intervalRef.current) clearInterval(intervalRef.current);
     } else {
-      // on play, start from Day 0 (pre-cyclone)
-      setFrameDay(0);
+      setCursor(0);
       setIsPlaying(true);
     }
   };
-
-  const handleSlider = (v: number[]) => setFrameDay(v[0]);
-  const skipToStart = () => setFrameDay(0);
-  const skipToEnd = () => setFrameDay(TOTAL);
+  const handleSlider = (v: number[]) => setCursor(v[0]);
+  const skipToStart = () => setCursor(0);
+  const skipToEnd = () => setCursor(TOTAL);
 
   return (
     <section className="py-20 px-4 bg-gradient-to-b from-background to-muted/20">
       <div className="container mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold mb-4">
-            <span className="text-gradient">Cyclone 02A Time-Lapse</span>
+            <span className="text-gradient">{title}</span>
           </h2>
-          <p className="text-muted-foreground text-lg">
-            Pre-Cyclone (Day 0) → Cyclone (Day 319), looping playback
-          </p>
+          <p className="text-muted-foreground text-lg">{subtitle}</p>
         </div>
 
         <Card className="glass-panel p-8 max-w-4xl mx-auto">
           {/* Slider */}
           <div className="space-y-2 mb-6">
             <Slider
-              value={[frameDay]}
+              value={[cursor]}
               onValueChange={handleSlider}
               max={TOTAL}
               step={1}
               className="w-full"
             />
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Day 0 (Nov 18, 2024)</span>
-              <span className="font-medium text-foreground">Day {frameDay} / {TOTAL}</span>
-              <span>Day 319 (Oct 3, 2025)</span>
+              <span>{startLabel}</span>
+              <span className="font-medium text-foreground">
+  {isMoon
+    ? // Map Moon frames to days
+      `Day ${[0, 100, 200, 300, 319][cursor] ?? 0} / 319`
+    : `Day ${cursor} / 319`}
+</span>
+
+              <span>{endLabel}</span>
             </div>
           </div>
 
@@ -126,25 +143,42 @@ const TimelapseControl = () => {
             </Button>
           </div>
 
-          {/* Dates */}
+          {/* Footer stats */}
           <div className="mt-6 pt-6 border-t border-border/50 grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-primary">Nov 18, 2024</div>
-              <div className="text-xs text-muted-foreground">Start (Pre-Cyclone)</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-accent">Oct 3, 2025</div>
-              <div className="text-xs text-muted-foreground">End (Cyclone)</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-secondary">{TOTAL} days</div>
-              <div className="text-xs text-muted-foreground">Total Span</div>
-            </div>
+            {isMoon ? (
+              <>
+                <div>
+                  <div className="text-2xl font-bold text-primary">LRO</div>
+                  <div className="text-xs text-muted-foreground">Instrument</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-accent">{frames.length} frames</div>
+                  <div className="text-xs text-muted-foreground">Sequential images</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-secondary">Moon</div>
+                  <div className="text-xs text-muted-foreground">Target</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <div className="text-2xl font-bold text-primary">Nov 18, 2024</div>
+                  <div className="text-xs text-muted-foreground">Start</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-accent">Oct 3, 2025</div>
+                  <div className="text-xs text-muted-foreground">End</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-secondary">319 days</div>
+                  <div className="text-xs text-muted-foreground">Total span</div>
+                </div>
+              </>
+            )}
           </div>
         </Card>
       </div>
     </section>
   );
-};
-
-export default TimelapseControl;
+}

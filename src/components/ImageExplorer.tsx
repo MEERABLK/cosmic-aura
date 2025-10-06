@@ -15,6 +15,38 @@ import { useDataset } from "@/context/DatasetContext";
 const ImageExplorer: React.FC = () => {
   // global dataset state (from context)
   const { selectedDataset, setSelectedDataset, datasets: storeDatasets } = useDataset();
+const MarsTileLayer: React.FC<{ zoomLevel: number }> = ({ zoomLevel }) => {
+  // Example: render a grid of 8x4 tiles for zoom=3
+  const tiles = [];
+  const maxX = 8;
+  const maxY = 4;
+  for (let x = 0; x < maxX; x++) {
+    for (let y = 0; y < maxY; y++) {
+      const url = `https://trek.nasa.gov/tiles/tileserver/mars/1.0.0/MDIM21_ClrMosaic_Global_1024/default/default028mm/${zoomLevel}/${y}/${x}.jpg`;
+      tiles.push(
+        <img
+          key={`${x}-${y}`}
+          src={url}
+          alt={`Tile ${x},${y}`}
+          className="absolute"
+          style={{
+            left: x * 256,
+            top: y * 256,
+            width: 256,
+            height: 256,
+          }}
+          draggable={false}
+        />
+      );
+    }
+  }
+
+  return (
+    <div className="relative" style={{ width: maxX * 256, height: maxY * 256 }}>
+      {tiles}
+    </div>
+  );
+};
 
   // which planet tab is active in the sidebar
   const [selectedPlanet, setSelectedPlanet] = useState<string>("Earth");
@@ -26,8 +58,8 @@ const ImageExplorer: React.FC = () => {
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // toolbar actions
-  const handleZoomIn = () => setZoom((z) => Math.min(z + 0.5, 5));
-  const handleZoomOut = () => setZoom((z) => Math.max(z - 0.5, 1));
+  const handleZoomIn = () => setZoom((z) => Math.min(z + 0.2, 30));
+  const handleZoomOut = () => setZoom((z) => Math.max(z - 0.2, 1));
   const handleReset = () => {
     setZoom(1);
     setPosition({ x: 0, y: 0 });
@@ -199,14 +231,22 @@ const detections = aiInsights[selectedDataset.id] ?? [];
                   className="absolute top-1/2 left-1/2 will-change-transform"
                   style={transformStyle}
                 >
-                  {/* Base image */}
-                  <img
-                    src={selectedDataset.image}
-                    alt={selectedDataset.name}
-                    className="select-none max-w-none"
-                    style={{ width: "1000px", height: "auto" }}
-                    draggable={false}
-                  />
+                  {selectedDataset.planet === "Mars" ? (
+  <MarsTileLayer zoomLevel={3} />
+) : (
+<img
+  src={selectedDataset.image}
+  alt={selectedDataset.name}
+  className="select-none object-contain"
+  style={{
+    width: "100%",       // fill the container width
+    height: "auto",      // maintain aspect ratio
+    maxWidth: "600px",   // optional: limit maximum size
+    borderRadius: "50%", // optional: make it circular
+  }}
+  draggable={false}
+/>
+)}
 
                   {/* Compare overlay */}
                   {compare && overlayDataset && (

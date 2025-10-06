@@ -7,6 +7,14 @@ import stage2Image from "@/assets/cyclone-02a-stage2.jpg";
 import stage3Image from "@/assets/cyclone-02a-stage3.jpg";
 import andromedaImage from "@/assets/andromeda.jpg";
 
+// Moon frames
+import moon01 from "@/assets/moon/moon0.jpg";
+import moon02 from "@/assets/moon/moon100.jpg";
+import moon03 from "@/assets/moon/moon200.jpg";
+import moon04 from "@/assets/moon/moon300.jpg";
+import moon05 from "@/assets/moon/moon319.jpg";
+
+// --- Type ---
 export interface DatasetMetadata {
   id: string;
   name: string;
@@ -23,6 +31,76 @@ export interface DatasetMetadata {
   thumbnail: string;
 }
 
+// --- Moon frames export ---
+export const moonTimelapseFrames: DatasetMetadata[] = [
+  {
+    id: "moon-frame-1",
+    name: "Moon – Frame 1",
+    planet: "Moon",
+    timestamp: "2025-01-01",
+    instrument: "LROC",
+    description: "Lunar surface detail",
+    source: "NASA LRO / LROC",
+    resolution: "HD",
+    wavelength: "Visible",
+    image: moon01,
+    thumbnail: moon01,
+  },
+  {
+    id: "moon-frame-2",
+    name: "Moon – Frame 2",
+    planet: "Moon",
+    timestamp: "2025-01-02",
+    instrument: "LROC",
+    description: "Lunar surface detail",
+    source: "NASA LRO / LROC",
+    resolution: "HD",
+    wavelength: "Visible",
+    image: moon02,
+    thumbnail: moon02,
+  },
+  {
+    id: "moon-frame-3",
+    name: "Moon – Frame 3",
+    planet: "Moon",
+    timestamp: "2025-01-03",
+    instrument: "LROC",
+    description: "Lunar surface detail",
+    source: "NASA LRO / LROC",
+    resolution: "HD",
+    wavelength: "Visible",
+    image: moon03,
+    thumbnail: moon03,
+  },
+  {
+    id: "moon-frame-4",
+    name: "Moon – Frame 4",
+    planet: "Moon",
+    timestamp: "2025-01-04",
+    instrument: "LROC",
+    description: "Lunar surface detail",
+    source: "NASA LRO / LROC",
+    resolution: "HD",
+    wavelength: "Visible",
+    image: moon04,
+    thumbnail: moon04,
+  },
+  {
+    id: "moon-frame-5",
+    name: "Moon – Frame 5",
+    planet: "Moon",
+    timestamp: "2025-01-05",
+    instrument: "LROC",
+    description: "Lunar surface detail",
+    source: "NASA LRO / LROC",
+    resolution: "HD",
+    wavelength: "Visible",
+    image: moon05,
+    thumbnail: moon05,
+  },
+];
+
+// --- Datasets ---
 export const datasets: Record<string, DatasetMetadata[]> = {
   Earth: [
     {
@@ -107,76 +185,54 @@ export const datasets: Record<string, DatasetMetadata[]> = {
     },
   ],
 
-  Moon: [
-    {
-      id: "moon-sample",
-      name: "Lunar Surface",
-      planet: "Moon",
-      timestamp: "2024-09-15",
-      instrument: "LRO Camera",
-      description: "Detailed view of the lunar surface showing craters and maria.",
-      source: "NASA LRO",
-      resolution: "0.5 GP",
-      wavelength: "Visible",
-      image: earthSample, // Placeholder
-      thumbnail: earthSample,
-    },
-  ],
+  Moon: [...moonTimelapseFrames],
 
   Mars: [
     {
-      id: "mars-sample",
-      name: "Martian Terrain",
+      id: "mars-global-color",
+      name: "Mars Global Mosaic (MDIM21)",
       planet: "Mars",
-      timestamp: "2024-08-22",
-      instrument: "HiRISE",
+      timestamp: "2024-12-01",
+      instrument: "MOLA + Viking Color Mosaic",
       description:
-        "High-resolution view of Martian surface features and geological formations.",
-      source: "NASA MRO HiRISE",
-      resolution: "1.5 GP",
-      wavelength: "RGB Composite",
-      image: earthSample, // Placeholder
-      thumbnail: earthSample,
+        "Global map tiles from NASA Mars Trek (MDIM21_ClrMosaic_Global_1024)",
+      source: "NASA Mars Trek / USGS Astrogeology",
+      resolution: "1024ppd (~60 m/pixel)",
+      wavelength: "Visible Color",
+      image:
+        "https://trek.nasa.gov/tiles/tileserver/mars/1.0.0/MDIM21_ClrMosaic_Global_1024/default/default028mm/3/4/2.jpg",
+      thumbnail:
+        "https://trek.nasa.gov/tiles/tileserver/mars/1.0.0/MDIM21_ClrMosaic_Global_1024/default/default028mm/3/4/2.jpg",
     },
   ],
 
   Andromeda: [
     {
-      
-  id: "andromeda-sample",
-  name: "Andromeda Galaxy",
-  planet: "Andromeda",
-  timestamp: "2024-07-10",
-  instrument: "Hubble Space Telescope",
-  description: "Deep space observation of the Andromeda Galaxy showing stellar formations.",
-  source: "NASA Hubble",
-  resolution: "3.2 GP",
-  wavelength: "Multi-spectrum",
-  image: andromedaImage,
-  thumbnail: andromedaImage,
-}
-
-    
+      id: "andromeda-sample",
+      name: "Andromeda Galaxy",
+      planet: "Andromeda",
+      timestamp: "2024-07-10",
+      instrument: "Hubble Space Telescope",
+      description:
+        "Deep space observation of the Andromeda Galaxy showing stellar formations.",
+      source: "NASA Hubble",
+      resolution: "3.2 GP",
+      wavelength: "Multi-spectrum",
+      image: andromedaImage,
+      thumbnail: andromedaImage,
+    },
   ],
 };
 
-export const aiInsights: Record<
-  string,
-  Array<{ pattern: string; confidence: number }>
-> = {
+// --- Optional AI insights ---
+export const aiInsights: Record<string, Array<{ pattern: string; confidence: number }>> = {
   "pre-cyclone-02a": [
     { pattern: "Low-pressure System", confidence: 82 },
     { pattern: "Developing Rotation", confidence: 78 },
   ],
-  "cyclone-02a-stage1": [
-    { pattern: "Spiral Bands", confidence: 86 },
-  ],
-  "cyclone-02a-stage2": [
-    { pattern: "Deep Convection", confidence: 90 },
-  ],
-  "cyclone-02a-stage3": [
-    { pattern: "Defined Eyewall", confidence: 93 },
-  ],
+  "cyclone-02a-stage1": [{ pattern: "Spiral Bands", confidence: 86 }],
+  "cyclone-02a-stage2": [{ pattern: "Deep Convection", confidence: 90 }],
+  "cyclone-02a-stage3": [{ pattern: "Defined Eyewall", confidence: 93 }],
   "tropical-cyclone-02a": [
     { pattern: "Cyclonic Rotation", confidence: 98 },
     { pattern: "Eye Wall Structure", confidence: 95 },
@@ -196,21 +252,3 @@ export const aiInsights: Record<
     { pattern: "Spiral Arms", confidence: 93 },
   ],
 };
-
-// (Optional demo frames; safe to keep or remove if unused)
-export const earthTimelapseFrames: DatasetMetadata[] = Array.from(
-  { length: 12 },
-  (_, i) => ({
-    id: `earth-timelapse-${i}`,
-    name: `Earth - Day ${i * 30}`,
-    planet: "Earth",
-    timestamp: `2024-${String(i + 1).padStart(2, "0")}-01`,
-    instrument: "MODIS",
-    description: `Earth time-lapse frame ${i + 1}, showing changes in weather systems and cloud cover.`,
-    source: "NASA MODIS",
-    resolution: "1.2 GP",
-    wavelength: "Visible",
-    image: i % 2 === 0 ? earthSample : cycloneImage, // alt demo
-    thumbnail: i % 2 === 0 ? earthSample : cycloneImage,
-  })
-);
