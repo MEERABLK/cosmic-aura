@@ -58,8 +58,8 @@ const MarsTileLayer: React.FC<{ zoomLevel: number }> = ({ zoomLevel }) => {
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // toolbar actions
-  const handleZoomIn = () => setZoom((z) => Math.min(z + 0.2, 30));
-  const handleZoomOut = () => setZoom((z) => Math.max(z - 0.2, 1));
+  const handleZoomIn = () => setZoom((z) => Math.min(z + 1, 30));
+  const handleZoomOut = () => setZoom((z) => Math.max(z - 1, 1));
   const handleReset = () => {
     setZoom(1);
     setPosition({ x: 0, y: 0 });
